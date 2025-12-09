@@ -1,0 +1,141 @@
+openapi: 3.0.3
+info:
+  title: API de Contratação de Energia via Copel Mercado Livre
+  version: "1.0.0"
+  description: >
+    API para a jornada de contratação de energia no mercado livre para clientes do Grupo B. Permite a verificação de elegibilidade, simulações (por UCs, principais UCs ou gasto manual), solicitação de propostas, registro de contratos e assinatura.
+
+servers:
+  - url: https://api.exemplo.com
+
+paths:
+  /v1/contratacao/{documento}/ucs-elegiveis:
+    get:
+      summary: Lista UCs do cliente elegíveis para contração de energia via mercado livre
+      operationId: listarUcsElegiveisParaContratacao
+      description: >
+        Retorna uma lista de Unidades Consumidoras (UCs) do grupo B elegíveis para contratação no mercado livre, associadas a um cliente específico identificado pelo seu documento.
+      parameters:
+        - $ref: '#/components/parameters/Documento'
+        - name: limiteUcs
+          in: query
+          required: true
+          description: >
+            Número máximo de UCs elegíveis para simulação. Se o cliente possuir mais UCs do que este limite, a operação falhará.
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+          example: 50
+        - $ref: '#/components/parameters/ApiKey'
+      responses:
+        '200':
+          description: Lista de unidades consumidoras elegíveis retornada com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListaUcsResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntityUCList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+components:
+  parameters:
+    ApiKey: 
+      name: x-api-key
+      in: header
+      required: true
+      schema: { type: string }
+      description: "Chave de API para autenticação."
+      example: "c3e3a3b2-92e9-4464-8def-1178a9d15021"
+    Documento: 
+      name: documento
+      in: path
+      required: true
+      description: "Número do documento do cliente (CPF ou CNPJ). Enviar apenas os dígitos."
+      schema: { type: string }
+      example: "12345678000199"
+    ContratoId: 
+      name: contratoId
+      in: path
+      required: true
+      description: "Identificador único do contrato."
+      schema: { type: string}
+      example: "a1b2c3d4"
+
+  responses:
+    Unauthorized: 
+      description: "API-Key inválida ou ausente."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "NAO_AUTORIZADO"
+              message: "A chave de API (x-api-key) é inválida ou não foi fornecida."
+    BadRequest: 
+      description: "Parâmetros da requisição inválidos."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "REQUISICAO_INVALIDA"
+              message: "O parâmetro 'limiteUcs' deve ser um número inteiro."
+    NotFound: 
+      description: "Recurso não encontrado (cliente ou contrato)."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "CLIENTE_NAO_ENCONTRADO"
+              message: "Nenhum cliente foi encontrado com o documento fornecido."
+    UnprocessableEntityUCList: 
+      description: "Erro de regra de negócio. O cliente possui mais UCs elegíveis do que o limite especificado."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "LIMITE_UCS_EXCEDIDO"
+              message: "O cliente possui mais UCs do que o limite permitido para esta consulta."
+              details:
+                limiteEspecificado: 50
+
+  schemas:
+    UcElegivel:
+      type: object
+      required: [codigo, endereco, contratoMLAtivo]
+      properties:
+        codigo: { type: string, description: "Código único da Unidade Consumidora.", example: "7001234567" }
+        endereco: { type: string, description: "Endereço completo da Unidade Consumidora.", example: "Rua das Flores, 123, Cidade Exemplo - SP" }
+        contratoMLAtivo: { type: boolean, description: "Indica se a UC já possui um contrato ativo no mercado livre." }
+
+    ListaUcsResponse:
+      type: object
+      properties:
+        dados:
+          type: array
+          items: { $ref: '#/components/schemas/UcElegivel' }    
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, description: "Código de erro da aplicação.", example: "RECURSO_NAO_ENCONTRADO" }
+            message: { type: string, description: "Descrição legível do erro.", example: "O recurso solicitado não foi encontrado." }
+            details: { type: object, additionalProperties: true, description: "Detalhes específicos sobre o erro.", example: { recurso: "cliente", id: "12345678000199" } }
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key

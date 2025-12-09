@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - WSC_ENDPOINT=https://webhml.copel.nt/wsc/rest
+      - WSC_USER=mblwsh
+      - WSC_PASS=jUventus
+      - LOG_LEVEL=DEBUG
+      - AMBIENTE_LOW=local
+    volumes:      
+      - ./certs/store-copel.jks:/app/jks/store-copel.jks:ro
