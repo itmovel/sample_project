@@ -6,8 +6,8 @@ services:
       - "8080:8080"
     environment:
       - WSC_ENDPOINT=https://webhml.copel.nt/wsc/rest
-      - WSC_USER=mblwsh
-      - WSC_PASS=jUventus
+      - WSC_USER=yyyyy
+      - WSC_PASS=xxxx
       - LOG_LEVEL=DEBUG
       - AMBIENTE_LOW=local
     volumes:      
